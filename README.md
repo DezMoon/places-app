@@ -22,7 +22,7 @@ This project is a React application built using TypeScript, Mapbox, Deck.gl, and
 1.  **Clone the repository:**
 
     ```bash
-    git clone [[repository_url]](https://github.com/DezMoon/places-app.git)
+    git clone https://github.com/DezMoon/places-app.git
     cd places-app
     ```
 
