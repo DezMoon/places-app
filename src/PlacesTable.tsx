@@ -1,8 +1,13 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  useCallback,
+} from "react";
 import {
   Table,
   TableHead,
-  TableBody,
   TableRow,
   TableCell,
   TableSortLabel,
@@ -10,9 +15,9 @@ import {
   Paper,
   TableContainer,
 } from "@mui/material";
+import { FixedSizeList } from "react-window";
 import { Place } from "./usePlacesData";
 
-// Define the type for the sorting order
 type Order = "asc" | "desc";
 
 interface PlacesTableProps {
@@ -22,6 +27,19 @@ interface PlacesTableProps {
   onRowSelect: (place: Place) => void;
   selectedPlace: Place | null;
 }
+
+const ROW_HEIGHT = 60;
+
+// Define column widths (adjust these as needed)
+const columnWidths = {
+  pid: "20%",
+  name: "25%",
+  city: "15%",
+  region: "10%",
+  postal_code: "10%",
+  latitude: "10%",
+  longitude: "10%",
+};
 
 const PlacesTable: React.FC<PlacesTableProps> = React.memo(
   ({ places, filter, setFilter, onRowSelect, selectedPlace }) => {
@@ -57,21 +75,15 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
       return stabilizedThis.map((el) => el[0]);
     }, [filteredData, order, orderBy]);
 
-    const tableBodyRef = useRef<HTMLTableSectionElement>(null);
+    const listRef = useRef<FixedSizeList>(null);
 
     useEffect(() => {
-      if (selectedPlace && tableBodyRef.current && sortedData) {
+      if (selectedPlace && sortedData && listRef.current) {
         const index = sortedData.findIndex(
           (place) => place.pid === selectedPlace.pid
         );
-        if (index !== -1 && tableBodyRef.current.children[index]) {
-          (
-            tableBodyRef.current.children[index] as HTMLTableRowElement
-          ).scrollIntoView({
-            behavior: "smooth",
-            block: "nearest",
-            inline: "start",
-          });
+        if (index !== -1) {
+          listRef.current.scrollToItem(index, "start");
         }
       }
     }, [selectedPlace, sortedData]);
@@ -82,6 +94,50 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
       }
       return a > b || a === null ? 1 : -1;
     }
+
+    const Row = useCallback(
+      ({ index, style }: { index: number; style: React.CSSProperties }) => {
+        const place = sortedData[index];
+        if (!place) {
+          return null;
+        }
+        return (
+          <TableRow
+            key={place.pid}
+            onClick={() => onRowSelect(place)}
+            style={style}
+            sx={{
+              background:
+                selectedPlace?.pid === place.pid ? "#c8e6c9" : "white",
+              cursor: "pointer",
+            }}
+          >
+            <TableCell style={{ width: columnWidths.pid }}>
+              {place.pid}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.name }}>
+              {place.name}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.city }}>
+              {place.city}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.region }}>
+              {place.region}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.postal_code }}>
+              {place.postal_code}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.latitude }}>
+              {place.latitude}
+            </TableCell>
+            <TableCell style={{ width: columnWidths.longitude }}>
+              {place.longitude}
+            </TableCell>
+          </TableRow>
+        );
+      },
+      [sortedData, onRowSelect, selectedPlace]
+    );
 
     return (
       <Paper sx={{ width: "100%", overflow: "hidden" }}>
@@ -96,7 +152,7 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell key="pid">
+                <TableCell key="pid" style={{ width: columnWidths.pid }}>
                   <TableSortLabel
                     active={orderBy === "pid"}
                     direction={orderBy === "pid" ? order : "asc"}
@@ -105,7 +161,7 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
                     PID
                   </TableSortLabel>
                 </TableCell>
-                <TableCell key="name">
+                <TableCell key="name" style={{ width: columnWidths.name }}>
                   <TableSortLabel
                     active={orderBy === "name"}
                     direction={orderBy === "name" ? order : "asc"}
@@ -114,7 +170,7 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
                     Name
                   </TableSortLabel>
                 </TableCell>
-                <TableCell key="city">
+                <TableCell key="city" style={{ width: columnWidths.city }}>
                   <TableSortLabel
                     active={orderBy === "city"}
                     direction={orderBy === "city" ? order : "asc"}
@@ -123,7 +179,7 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
                     City
                   </TableSortLabel>
                 </TableCell>
-                <TableCell key="region">
+                <TableCell key="region" style={{ width: columnWidths.region }}>
                   <TableSortLabel
                     active={orderBy === "region"}
                     direction={orderBy === "region" ? order : "asc"}
@@ -132,7 +188,10 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
                     Region
                   </TableSortLabel>
                 </TableCell>
-                <TableCell key="postal_code">
+                <TableCell
+                  key="postal_code"
+                  style={{ width: columnWidths.postal_code }}
+                >
                   <TableSortLabel
                     active={orderBy === "postal_code"}
                     direction={orderBy === "postal_code" ? order : "asc"}
@@ -141,32 +200,30 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
                     Postal Code
                   </TableSortLabel>
                 </TableCell>
-                <TableCell key="latitude">Latitude</TableCell>
-                <TableCell key="longitude">Longitude</TableCell>
+                <TableCell
+                  key="latitude"
+                  style={{ width: columnWidths.latitude }}
+                >
+                  Latitude
+                </TableCell>
+                <TableCell
+                  key="longitude"
+                  style={{ width: columnWidths.longitude }}
+                >
+                  Longitude
+                </TableCell>
               </TableRow>
             </TableHead>
-            <TableBody ref={tableBodyRef}>
-              {sortedData.map((place) => (
-                <TableRow
-                  key={place.pid}
-                  onClick={() => onRowSelect(place)}
-                  sx={{
-                    background:
-                      selectedPlace?.pid === place.pid ? "#c8e6c9" : "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  <TableCell>{place.pid}</TableCell>
-                  <TableCell>{place.name}</TableCell>
-                  <TableCell>{place.city}</TableCell>
-                  <TableCell>{place.region}</TableCell>
-                  <TableCell>{place.postal_code}</TableCell>
-                  <TableCell>{place.latitude}</TableCell>
-                  <TableCell>{place.longitude}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
           </Table>
+          <FixedSizeList
+            height={600 - 48 - 16}
+            width="100%"
+            itemCount={sortedData.length}
+            itemSize={ROW_HEIGHT}
+            ref={listRef}
+          >
+            {Row}
+          </FixedSizeList>
         </TableContainer>
       </Paper>
     );
