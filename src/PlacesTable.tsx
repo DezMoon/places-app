@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   Table,
   TableHead,
@@ -9,104 +9,168 @@ import {
   TextField,
   Paper,
   TableContainer,
-} from '@mui/material';
-import { Place } from './usePlacesData';
+} from "@mui/material";
+import { Place } from "./usePlacesData";
 
-// Props interface for the PlacesTable component
+// Define the type for the sorting order
+type Order = "asc" | "desc";
+
 interface PlacesTableProps {
-  places: Place[]; // List of places to display
-  filter: string; // Current filter value
-  setFilter: (value: string) => void; // Function to update the filter value
-  onRowSelect: (place: Place) => void; // Callback when a row is selected
-  selectedPlace: Place | null; // Currently selected place
+  places: Place[];
+  filter: string;
+  setFilter: (filter: string) => void;
+  onRowSelect: (place: Place) => void;
+  selectedPlace: Place | null;
 }
 
-// Type for sorting order
-type Order = 'asc' | 'desc';
+const PlacesTable: React.FC<PlacesTableProps> = React.memo(
+  ({ places, filter, setFilter, onRowSelect, selectedPlace }) => {
+    const [order, setOrder] = useState<Order>("asc");
+    const [orderBy, setOrderBy] = useState<keyof Place>("name");
 
-const PlacesTable: React.FC<PlacesTableProps> = ({ places, filter, setFilter, onRowSelect, selectedPlace }) => {
-  // State for sorting order and the column to sort by
-  const [order, setOrder] = useState<Order>('asc');
-  const [orderBy, setOrderBy] = useState<keyof Place>('name');
+    const handleRequestSort =
+      (property: keyof Place) => (event: React.MouseEvent<unknown>) => {
+        const isAsc = orderBy === property && order === "asc";
+        setOrder(isAsc ? "desc" : "asc");
+        setOrderBy(property);
+      };
 
-  // Handles sorting logic when a column header is clicked
-  const handleSort = (column: keyof Place) => {
-    setOrder(orderBy === column && order === 'asc' ? 'desc' : 'asc'); // Toggle sorting order
-    setOrderBy(column); // Set the column to sort by
-  };
+    const filteredData = useMemo(() => {
+      return places.filter((place) =>
+        Object.values(place).some((value) =>
+          String(value).toLowerCase().includes(filter.toLowerCase())
+        )
+      );
+    }, [places, filter]);
 
-  // Filters the data based on the current filter value
-  const filteredData = useMemo(() => {
-    return places.filter((place) =>
-      Object.values(place)
-        .join(' ')
-        .toLowerCase()
-        .includes(filter.toLowerCase()) // Case-insensitive filtering
-    );
-  }, [places, filter]);
+    const sortedData = useMemo(() => {
+      const stabilizedThis = filteredData.map(
+        (el, index) => [el, index] as [Place, number]
+      );
+      stabilizedThis.sort((a, b) => {
+        const orderResult = compare(a[0][orderBy], b[0][orderBy]);
+        if (orderResult !== 0) {
+          return orderResult * (order === "desc" ? -1 : 1);
+        }
+        return a[1] - b[1];
+      });
+      return stabilizedThis.map((el) => el[0]);
+    }, [filteredData, order, orderBy]);
 
-  // Sorts the filtered data based on the selected column and order
-  const sortedData = useMemo(() => {
-    return [...filteredData].sort((a, b) => {
-      const aValue = a[orderBy];
-      const bValue = b[orderBy];
-      return aValue < bValue ? (order === 'asc' ? -1 : 1) : aValue > bValue ? (order === 'asc' ? 1 : -1) : 0;
-    });
-  }, [filteredData, order, orderBy]);
+    const tableBodyRef = useRef<HTMLTableSectionElement>(null);
 
-  return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-      {/* Table container with a filter input */}
-      <TableContainer sx={{ maxHeight: 600 }}>
+    useEffect(() => {
+      if (selectedPlace && tableBodyRef.current && sortedData) {
+        const index = sortedData.findIndex(
+          (place) => place.pid === selectedPlace.pid
+        );
+        if (index !== -1 && tableBodyRef.current.children[index]) {
+          (
+            tableBodyRef.current.children[index] as HTMLTableRowElement
+          ).scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "start",
+          });
+        }
+      }
+    }, [selectedPlace, sortedData]);
+
+    function compare<T>(a: T, b: T) {
+      if (a === b) {
+        return 0;
+      }
+      return a > b || a === null ? 1 : -1;
+    }
+
+    return (
+      <Paper sx={{ width: "100%", overflow: "hidden" }}>
         <TextField
-          label="Filter/Search"
-          variant="outlined"
-          fullWidth
+          label="Filter places"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)} // Update filter value on input change
-          sx={{ margin: 2 }}
+          onChange={(e) => setFilter(e.target.value)}
+          fullWidth
+          margin="normal"
         />
-        <Table stickyHeader size="small">
-          <TableHead>
-            <TableRow>
-              {/* Render column headers with sorting functionality */}
-              {['PID', 'Name', 'City', 'Region', 'Postal_Code', 'Tenant_Type'].map((col) => (
-                <TableCell key={col}>
+        <TableContainer sx={{ maxHeight: 600 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell key="pid">
                   <TableSortLabel
-                    active={orderBy === col} // Highlight active column
-                    direction={orderBy === col ? order : 'asc'} // Set sorting direction
-                    onClick={() => handleSort(col as keyof Place)} // Handle column sorting
+                    active={orderBy === "pid"}
+                    direction={orderBy === "pid" ? order : "asc"}
+                    onClick={handleRequestSort("pid")}
                   >
-                    {col}
+                    PID
                   </TableSortLabel>
                 </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* Render rows for the sorted and filtered data */}
-            {sortedData.map((place) => (
-              <TableRow
-                key={place.pid}
-                onClick={() => onRowSelect(place)} // Handle row selection
-                sx={{
-                  background: selectedPlace?.pid === place.pid ? '#c8e6c9' : 'white', // Highlight selected row
-                  cursor: 'pointer', // Change cursor to pointer for clickable rows
-                }}
-              >
-                <TableCell>{place.pid}</TableCell>
-                <TableCell>{place.name}</TableCell>
-                <TableCell>{place.city}</TableCell>
-                <TableCell>{place.region}</TableCell>
-                <TableCell>{place.postal_code}</TableCell>
-                <TableCell>{place.tenant_type}</TableCell>
+                <TableCell key="name">
+                  <TableSortLabel
+                    active={orderBy === "name"}
+                    direction={orderBy === "name" ? order : "asc"}
+                    onClick={handleRequestSort("name")}
+                  >
+                    Name
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell key="city">
+                  <TableSortLabel
+                    active={orderBy === "city"}
+                    direction={orderBy === "city" ? order : "asc"}
+                    onClick={handleRequestSort("city")}
+                  >
+                    City
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell key="region">
+                  <TableSortLabel
+                    active={orderBy === "region"}
+                    direction={orderBy === "region" ? order : "asc"}
+                    onClick={handleRequestSort("region")}
+                  >
+                    Region
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell key="postal_code">
+                  <TableSortLabel
+                    active={orderBy === "postal_code"}
+                    direction={orderBy === "postal_code" ? order : "asc"}
+                    onClick={handleRequestSort("postal_code")}
+                  >
+                    Postal Code
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell key="latitude">Latitude</TableCell>
+                <TableCell key="longitude">Longitude</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Paper>
-  );
-};
+            </TableHead>
+            <TableBody ref={tableBodyRef}>
+              {sortedData.map((place) => (
+                <TableRow
+                  key={place.pid}
+                  onClick={() => onRowSelect(place)}
+                  sx={{
+                    background:
+                      selectedPlace?.pid === place.pid ? "#c8e6c9" : "white",
+                    cursor: "pointer",
+                  }}
+                >
+                  <TableCell>{place.pid}</TableCell>
+                  <TableCell>{place.name}</TableCell>
+                  <TableCell>{place.city}</TableCell>
+                  <TableCell>{place.region}</TableCell>
+                  <TableCell>{place.postal_code}</TableCell>
+                  <TableCell>{place.latitude}</TableCell>
+                  <TableCell>{place.longitude}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+    );
+  }
+);
 
 export default PlacesTable;
