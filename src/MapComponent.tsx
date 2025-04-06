@@ -1,8 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import DeckGL from "@deck.gl/react";
 import { ScatterplotLayer } from "@deck.gl/layers";
 import StaticMap from "react-map-gl/mapbox";
 import { Place } from "./usePlacesData";
+import { Tooltip } from "react-tooltip";
+import "react-tooltip/dist/react-tooltip.css";
 
 interface MapComponentProps {
   places: Place[];
@@ -19,6 +21,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
   initialViewState,
   onViewStateChange,
 }) => {
+  const [hoveredPlace, setHoveredPlace] = useState<Place | null>(null);
+
   const scatterplotLayer = useMemo(() => {
     return new ScatterplotLayer({
       id: "scatterplot-layer",
@@ -52,6 +56,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
       },
       radiusMinPixels: 4,
       radiusMaxPixels: 10,
+      onHover: (info: { object?: Place; x: number; y: number }) => {
+        // Add onHover
+        setHoveredPlace(info.object || null);
+      },
       onClick: (pickingInfo: { object?: Place }) => {
         console.log(
           "MapComponent.tsx: ScatterplotLayer onClick triggered",
@@ -82,17 +90,24 @@ const MapComponent: React.FC<MapComponentProps> = ({
   }, [places, selectedPlace, onSelectPlace]);
 
   return (
-    <DeckGL
-      initialViewState={initialViewState}
-      controller={true}
-      layers={[scatterplotLayer]}
-      onViewStateChange={onViewStateChange}
-    >
-      <StaticMap
-        mapStyle="mapbox://styles/mapbox/light-v10"
-        mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN!}
-      />
-    </DeckGL>
+    <>
+      <DeckGL
+        initialViewState={initialViewState}
+        controller={true}
+        layers={[scatterplotLayer]}
+        onViewStateChange={onViewStateChange}
+      >
+        <StaticMap
+          mapStyle="mapbox://styles/mapbox/light-v10"
+          mapboxAccessToken={process.env.REACT_APP_MAPBOX_TOKEN!}
+        />
+      </DeckGL>
+      {hoveredPlace && (
+        <Tooltip anchorId="mouse" id="place-tooltip" place="top">
+          {hoveredPlace.name}
+        </Tooltip>
+      )}
+    </>
   );
 };
 
