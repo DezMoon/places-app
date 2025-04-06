@@ -63,6 +63,14 @@ const MapComponent: React.FC<MapComponentProps> = ({
             pickingInfo.object.pid
           );
           onSelectPlace(pickingInfo.object);
+          onViewStateChange({
+            longitude: pickingInfo.object.longitude,
+            latitude: pickingInfo.object.latitude,
+            zoom: 10, // Adjust zoom level
+            pitch: 0,
+            bearing: 0,
+            transitionDuration: 500, // Optional smooth transition
+          });
         } else {
           console.log("MapComponent.tsx: Clicked on the map (no object)");
         }
