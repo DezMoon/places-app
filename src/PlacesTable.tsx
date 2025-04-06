@@ -108,8 +108,15 @@ const PlacesTable: React.FC<PlacesTableProps> = React.memo(
             style={style}
             sx={{
               background:
-                selectedPlace?.pid === place.pid ? "#c8e6c9" : "white",
+                selectedPlace?.pid === place.pid ? "#a5d6a7" : "white", // Slightly darker green
               cursor: "pointer",
+              "& td": {
+                padding: "8px 12px",
+              },
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.04)",
+              },
+              //borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
             }}
           >
             <TableCell style={{ width: columnWidths.pid }}>

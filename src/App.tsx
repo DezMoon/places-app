@@ -73,13 +73,18 @@ const App: React.FC = () => {
   }
 
   return (
-    <Box height="100vh" display="flex" flexDirection="column">
+    <Box height="100vh" display="flex" flexDirection="column" m={2}>
       {/* Header section with the title */}
       <Typography
         variant="h4"
         align="center"
         gutterBottom
-        sx={{ marginTop: 2 }}
+        sx={{
+          marginTop: 2,
+          marginBottom: 3, // Add more bottom margin
+          color: "#3f51b5", // A primary color from Material UI
+          fontWeight: 500,
+        }}
       >
         Places Map & Table
       </Typography>
@@ -87,7 +92,12 @@ const App: React.FC = () => {
       {/* Main content area with the map and table */}
       <Box display="flex" flexGrow={1} overflow="hidden">
         {/* Map section */}
-        <Box flex={1} position="relative">
+        <Box
+          flex={1}
+          position="relative"
+          mr={1}
+          sx={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+        >
           <MapComponent
             places={places}
             selectedPlace={selectedPlace}
@@ -98,7 +108,11 @@ const App: React.FC = () => {
         </Box>
 
         {/* Table section */}
-        <Box flex={1} overflow="auto">
+        <Box
+          flex={1}
+          overflow="auto"
+          sx={{ border: "1px solid rgba(0, 0, 0, 0.12)" }}
+        >
           <PlacesTable
             places={places}
             filter={filter} // Current filter value
