@@ -4,6 +4,7 @@ import usePlacesData, { Place } from "./usePlacesData";
 import MapComponent from "./MapComponent";
 import PlacesTable from "./PlacesTable";
 import DeckGL from "@deck.gl/react";
+import { Analytics } from "@vercel/analytics/react";
 
 const App: React.FC = () => {
   // Fetch places data from the CSV file using the custom hook
@@ -107,6 +108,7 @@ const App: React.FC = () => {
           />
         </Box>
       </Box>
+      <Analytics />
     </Box>
   );
 };
